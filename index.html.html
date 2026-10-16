@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ky">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Жаныбар клеткасынын түзүлүшү — Тапшырма</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #f1f5f9;
+            color: #334155;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 { color: #1e3a8a; font-size: 24px; margin-bottom: 5px; text-align: center; }
+        h3 { color: #64748b; font-size: 15px; font-weight: normal; margin-top: 0; margin-bottom: 15px; text-align: center; }
+        
+        .timer-box {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1e3a8a;
+            background: #e2e8f0;
+            padding: 8px 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #cbd5e1;
+        }
+
+        .main-container {
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+
+        /* Сүрөт контейнери */
+        .diagram-container {
+            position: relative;
+            width: 750px;
+            height: 520px;
+            background-image: url('cell.jpg'), url('cell.png'), url('cell.jpeg');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            border-radius: 8px;
+            border: 2px solid #cbd5e1;
+        }
+
+        /* Тандоочу уячалар (Селект) */
+        select {
+            position: absolute;
+            width: 150px;
+            height: 32px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 12px;
+            border: 2px solid #3b82f6;
+            border-radius: 6px;
+            background-color: white;
+            cursor: pointer;
+            outline: none;
+        }
+
+        /* Жебелердин учтарына жайгаштыруу координаты */
+        #dz-ядро { top: 112px; left: 63px; }
+        #dz-эндоплазма { top: 345px; left: 33px; }
+        #dz-рибосома { top: 440px; left: 58px; }
+        #dz-цитоплазма { top: 135px; left: 300px; }
+        #dz-мембрана { top: 100px; right: 53px; }
+        #dz-митохондрия { top: 200px; right: 28px; }
+        #dz-гольджи { top: 342px; right: 33px; }
+        #dz-лизосома { top: 440px; right: 58px; }
+
+        .control-panel {
+            margin-top: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        button {
+            border: none;
+            padding: 14px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        .btn-check { background-color: #10b981; color: white; }
+        .btn-reset { background-color: #64748b; color: white; }
+
+        #result-display { font-size: 18px; font-weight: bold; text-align: center; min-height: 27px; margin-top: 15px; }
+        
+        /* Туура же Ката түстөрү */
+        .correct { border: 3px solid #10b981 !important; background-color: #d1fae5 !important; color: #065f46; }
+        .incorrect { border: 3px solid #ef4444 !important; background-color: #fee2e2 !important; color: #991b1b; }
+    </style>
+</head>
+<body>
+
+    <h1>Жаныбар клеткасынын түзүлүшү</h1>
+    <h3>Ар бир жебенин тушундагы бош уячаны басып, туура органоиддин атын тандаңыз:</h3>
+
+    <div class="timer-box">Убакыт: <span id="timer">00:00</span></div>
+
+    <div class="main-container">
+        <div class="diagram-container">
+            <!-- Тандоо кутучалары -->
+            <select id="dz-ядро" class="zone" data-correct="ядро" onchange="startTimer()"></select>
+            <select id="dz-цитоплазма" class="zone" data-correct="цитоплазма" onchange="startTimer()"></select>
+            <select id="dz-мембрана" class="zone" data-correct="мембрана" onchange="startTimer()"></select>
+            <select id="dz-митохондрия" class="zone" data-correct="митохондрия" onchange="startTimer()"></select>
+            <select id="dz-гольджи" class="zone" data-correct="гольджи" onchange="startTimer()"></select>
+            <select id="dz-лизосома" class="zone" data-correct="лизосома" onchange="startTimer()"></select>
+            <select id="dz-рибосома" class="zone" data-correct="рибосома" onchange="startTimer()"></select>
+            <select id="dz-эндоплазма" class="zone" data-correct="эндоплазма" onchange="startTimer()"></select>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <button class="btn-check" onclick="evaluateTest()">Жыйынтыкты текшерүү</button>
+        <button class="btn-reset" onclick="resetTest()">Кайра баштоо</button>
+    </div>
+    <div id="result-display"></div>
+
+    <script>
+        const zones = document.querySelectorAll('.zone');
+        
+        // Органоиддердин тизмеси
+        const options = [
+            { text: "-- Тандоо --", value: "" },
+            { text: "Ядро", value: "ядро" },
+            { text: "Митохондрия", value: "митохондрия" },
+            { text: "Лизосома", value: "лизосома" },
+            { text: "Клетка мембранасы", value: "мембрана" },
+            { text: "Эндоплазмалык тор", value: "эндоплазма" },
+            { text: "Цитоплазма", value: "цитоплазма" },
+            { text: "Гольджи аппараты", value: "гольджи" },
+            { text: "Рибосома", value: "рибосома" }
+        ];
+
+        // Кутучаларга варианттарды толтуруу
+        zones.forEach(zone => {
+            options.forEach(opt => {
+                const el = document.createElement('option');
+                el.textContent = opt.text;
+                el.value = opt.value;
+                zone.appendChild(el);
+            });
+        });
+
+        // Таймер логикасы
+        let startTime = null;
+        let timerInterval = null;
+        let timerStarted = false;
+        let totalSeconds = 0;
+
+        function startTimer() {
+            if (!timerStarted) {
+                timerStarted = true;
+                startTime = Date.now();
+                timerInterval = setInterval(updateTimer, 1000);
+            }
+        }
+
+        function updateTimer() {
+            totalSeconds = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('timer').textContent = `${minutes}:${seconds}`;
+        }
+
+        function stopTimer() { clearInterval(timerInterval); }
+
+        // Текшерүү
+        function evaluateTest() {
+            stopTimer();
+            let correctCounter = 0;
+
+            zones.forEach(zone => {
+                const selectedValue = zone.value;
+                const correctValue = zone.getAttribute('data-correct');
+
+                if (selectedValue === correctValue) {
+                    zone.className = "zone correct";
+                    correctCounter++;
+                } else {
+                    zone.className = "zone incorrect";
+                }
+            });
+
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const timeString = `${minutes} мүнөт ${seconds} секунд`;
+
+            const output = document.getElementById('result-display');
+            if (correctCounter === zones.length) {
+                output.style.color = '#10b981';
+                output.textContent = `Азаматсыз! Бардыгы туура: ${correctCounter}/${zones.length} 🎉 (Убакыт: ${timeString})`;
+            } else {
+                output.style.color = '#ef4444';
+                output.textContent = `Каталар бар. Жыйынтык: ${correctCounter}/${zones.length}. Кайра аракет кылып көрүңүз! 🔄 (Убакыт: ${timeString})`;
+            }
+        }
+
+        // Тазалоо
+        function resetTest() {
+            stopTimer();
+            timerStarted = false;
+            totalSeconds = 0;
+            document.getElementById('timer').textContent = '00:00';
+            document.getElementById('result-display').textContent = '';
+
+            zones.forEach(zone => {
+                zone.value = "";
+                zone.className = "zone";
+            });
+        }
+    </script>
+</body>
+</html>
